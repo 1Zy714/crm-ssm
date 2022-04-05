@@ -1,22 +1,109 @@
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%
+String basePath = request.getScheme()+"://"+request.getServerName()+":"
++request.getServerPort()+request.getContextPath()+"/";
+%>
 <!DOCTYPE html>
 <html>
 <head>
+	<base href="<%=basePath%>">
 <meta charset="UTF-8">
 
-<link href="../../../../jquery/bootstrap_3.3.0/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
-<link href="../../../../jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css" type="text/css" rel="stylesheet" />
+<link href="jquery/bootstrap_3.3.0/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+<link href="jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css" type="text/css" rel="stylesheet" />
 
-<script type="text/javascript" src="../../../../jquery/jquery-1.11.1-min.js"></script>
-<script type="text/javascript" src="../../../../jquery/bootstrap_3.3.0/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="../../../../jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js"></script>
-<script type="text/javascript" src="../../../../jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js"></script>
+<script type="text/javascript" src="jquery/jquery-1.11.1-min.js"></script>
+<script type="text/javascript" src="jquery/bootstrap_3.3.0/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js"></script>
+<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js"></script>
 
 <script type="text/javascript">
 
 	$(function(){
-		
-		
-		
+
+		/*
+    	*	设置time类属性 年月日
+    	* */
+		$(".time").datetimepicker({
+			minView: "month",//可选择最小视图
+			language:  'zh-CN',
+			format: 'yyyy-mm-dd',
+			autoclose: true,//选择完日期自动关闭
+			todayBtn: true,
+			clearBtn:true,
+			pickerPosition: "bottom-left"
+		});
+		<%--给模态窗口用户下拉列表赋值--%>
+		var html="";
+		<c:forEach items="${users}" var="u">
+		html += "<option value='${u.id}'>${u.name}</option>"
+		</c:forEach>
+		$("#create-marketActivityOwner").html(html);
+		$("#edit-marketActivityOwner").html(html);
+		$("#createBtn").click(function(){
+			//清空模态窗口数据
+			$("#create-form")[0].reset();
+			//清空提示信息
+			$(".msg").text("");
+			//显示模态窗口
+			$("#createActivityModal").modal("show");
+		})
+		$("#saveBtn").click(function(){
+			$(".msg").text("");
+			var owner=$("#create-marketActivityOwner").val();
+			var name = $.trim($("#create-marketActivityName").val());
+			var startDate=$("#create-startDate").val();
+			var endDate = $("#create-endDate").val();
+			var cost = $.trim($("#create-cost").val());
+			var description = $.trim($("#create-description").val());
+			//判断数据是否符合要求
+			if(owner == ""){
+				$("#owner-msg").text("所有者不可为空");
+				return;
+			}if(name == ""){
+				$("#name-msg").text("名称不可为空");
+				return;
+			}if(startDate!==""&&endDate!=""){
+				if(startDate > endDate){
+					$("#date-msg").text("结束日期应该在开始日期之后");
+					return;
+				}
+			}
+			/*
+			* 正则表达式：
+			* 1.正则表达式是一种语言，有自己的语法，可以用来判断字符串是否符合规定的格式
+			* 2.var reqExp = /^(([1-9]\d*)|0)$/; 表示1-9匹配多个或者0
+			* */
+			var reqExp = /^(([1-9]\d*)|0)$/;
+			if(!(cost==""||reqExp.test(cost))){
+				$("#cost-msg").text("成本应该为非负整数");
+				return;
+			}
+			$.ajax({
+				url:"workbench/activity/save.do",
+				data:{
+					owner:owner,
+					name:name,
+					startDate:startDate,
+					endDate:endDate,
+					cost:cost,
+					description:description
+				},
+				type:"post",
+				dataType:"json",
+				success:function(data){
+					if(data.code=="1"){
+						$("#createActivityModal").modal("hide");
+						//刷新市场活动列表，显示第一页数据
+					}else{
+						$("#createActivityModal").modal("show");
+						alert(${data.msg});
+					}
+				}
+
+			})
+		})
 	});
 	
 </script>
@@ -35,31 +122,31 @@
 				</div>
 				<div class="modal-body">
 				
-					<form class="form-horizontal" role="form">
+					<form class="form-horizontal" role="form" id="create-form">
 					
 						<div class="form-group">
 							<label for="create-marketActivityOwner" class="col-sm-2 control-label">所有者<span style="font-size: 15px; color: red;">*</span></label>
 							<div class="col-sm-10" style="width: 300px;">
 								<select class="form-control" id="create-marketActivityOwner">
-								  <option>zhangsan</option>
-								  <option>lisi</option>
-								  <option>wangwu</option>
 								</select>
+								<span id="owner-msg" class="msg" style="color: #b92c28"></span>
 							</div>
                             <label for="create-marketActivityName" class="col-sm-2 control-label">名称<span style="font-size: 15px; color: red;">*</span></label>
                             <div class="col-sm-10" style="width: 300px;">
-                                <input type="text" class="form-control" id="create-marketActivityName">
+                                <input type="text" class="form-control " id="create-marketActivityName">
+								<span id="name-msg" class="msg" style="color: #b92c28"></span>
                             </div>
 						</div>
 						
 						<div class="form-group">
-							<label for="create-startTime" class="col-sm-2 control-label">开始日期</label>
+							<label for="create-startDate" class="col-sm-2 control-label">开始日期</label>
 							<div class="col-sm-10" style="width: 300px;">
-								<input type="text" class="form-control" id="create-startTime">
+								<input type="text" class="form-control time" id="create-startDate" readonly>
 							</div>
-							<label for="create-endTime" class="col-sm-2 control-label">结束日期</label>
+							<label for="create-endDate" class="col-sm-2 control-label">结束日期</label>
 							<div class="col-sm-10" style="width: 300px;">
-								<input type="text" class="form-control" id="create-endTime">
+								<input type="text" class="form-control time" id="create-endDate" readonly>
+								<span id="date-msg" class="msg" style="color: #b92c28"></span>
 							</div>
 						</div>
                         <div class="form-group">
@@ -67,12 +154,13 @@
                             <label for="create-cost" class="col-sm-2 control-label">成本</label>
                             <div class="col-sm-10" style="width: 300px;">
                                 <input type="text" class="form-control" id="create-cost">
-                            </div>
+								<span id="cost-msg" class="msg" style="color: #b92c28"></span>
+							</div>
                         </div>
 						<div class="form-group">
-							<label for="create-describe" class="col-sm-2 control-label">描述</label>
+							<label for="create-description" class="col-sm-2 control-label">描述</label>
 							<div class="col-sm-10" style="width: 81%;">
-								<textarea class="form-control" rows="3" id="create-describe"></textarea>
+								<textarea class="form-control" rows="3" id="create-description"></textarea>
 							</div>
 						</div>
 						
@@ -81,7 +169,7 @@
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
-					<button type="button" class="btn btn-primary" data-dismiss="modal">保存</button>
+					<button type="button" class="btn btn-primary" id="saveBtn">保存</button>
 				</div>
 			</div>
 		</div>
@@ -105,9 +193,7 @@
 							<label for="edit-marketActivityOwner" class="col-sm-2 control-label">所有者<span style="font-size: 15px; color: red;">*</span></label>
 							<div class="col-sm-10" style="width: 300px;">
 								<select class="form-control" id="edit-marketActivityOwner">
-								  <option>zhangsan</option>
-								  <option>lisi</option>
-								  <option>wangwu</option>
+
 								</select>
 							</div>
                             <label for="edit-marketActivityName" class="col-sm-2 control-label">名称<span style="font-size: 15px; color: red;">*</span></label>
@@ -238,7 +324,7 @@
 			</div>
 			<div class="btn-toolbar" role="toolbar" style="background-color: #F7F7F7; height: 50px; position: relative;top: 5px;">
 				<div class="btn-group" style="position: relative; top: 18%;">
-				  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createActivityModal"><span class="glyphicon glyphicon-plus"></span> 创建</button>
+				  <button type="button" class="btn btn-primary" id="createBtn"><span class="glyphicon glyphicon-plus"></span> 创建</button>
 				  <button type="button" class="btn btn-default" data-toggle="modal" data-target="#editActivityModal"><span class="glyphicon glyphicon-pencil"></span> 修改</button>
 				  <button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-minus"></span> 删除</button>
 				</div>
@@ -259,7 +345,7 @@
 							<td>结束日期</td>
 						</tr>
 					</thead>
-					<tbody>
+					<tbody id="activityBody">
 						<tr class="active">
 							<td><input type="checkbox" /></td>
 							<td><a style="text-decoration: none; cursor: pointer;" onclick="window.location.href='detail.html';">发传单</a></td>

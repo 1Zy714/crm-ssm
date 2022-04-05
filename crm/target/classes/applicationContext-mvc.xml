@@ -41,6 +41,7 @@
             <!--排除拦截请求-->
             <mvc:exclude-mapping path="/settings/qx/user/toLogin.do"/>
             <mvc:exclude-mapping path="/settings/qx/user/login.do"/>
+            <!--拦截器所在类-->
             <bean class="com.bjpowernode.crm.web.interceptor.LoginInterceptor"/>
         </mvc:interceptor>
     </mvc:interceptors>
