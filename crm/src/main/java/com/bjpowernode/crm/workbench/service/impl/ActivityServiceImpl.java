@@ -6,6 +6,8 @@ import com.bjpowernode.crm.workbench.service.ActivityService;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class ActivityServiceImpl implements ActivityService {
@@ -15,4 +17,21 @@ public class ActivityServiceImpl implements ActivityService {
     public int saveCreateActivity(Activity activity) {
         return activityMapper.insertActivity(activity);
     }
+
+    @Override
+    public List<Activity> queryActivityList(Map<String, Object> map) {
+        List<Activity> activityList = activityMapper.selectActivityList(map);
+        return activityList;
+    }
+
+    @Override
+    public int selectTotalOfActivityByCondition(Map<String, Object> map) {
+        return activityMapper.selectTotalOfActivityByCondition(map);
+    }
+
+    @Override
+    public int deleteActivityByIds(String[] ids) {
+        return activityMapper.deleteActivityByIds(ids);
+    }
+
 }

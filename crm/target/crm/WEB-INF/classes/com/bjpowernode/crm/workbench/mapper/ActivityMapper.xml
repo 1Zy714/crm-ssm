@@ -200,4 +200,67 @@
     #{endDate,jdbcType=CHAR}, #{cost,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR},
     #{createTime,jdbcType=CHAR}, #{createBy,jdbcType=VARCHAR})
   </insert>
+
+
+  <select id="selectActivityList" parameterType="map" resultMap="BaseResultMap">
+    select a.id,u1.name as owner,a.name,a.start_date,a.end_date,a.cost,
+                a.description,a.create_time,u2.name as create_by,
+                a.edit_time,u3.name as edit_by
+            from tbl_activity a
+                join tbl_user u1
+                 on     u1.id = a.owner
+                left join tbl_user u2
+                 on     u2.id = a.create_By
+                left join tbl_user u3
+                 on     u3.id = a.edit_By
+                    <where>
+                        <if test="name!=null and name!=''">
+                           a.name like '%' #{name} '%'
+                        </if>
+                        <if test="owner!=null and owner!=''">
+                          and u1.name like '%' #{owner} '%'
+                        </if>
+                        <if test="startDate!=null and startDate!=''">
+                          and a.start_date &gt;= #{startDate}
+                        </if>
+                        <if test="endDate!=null and endDate!=''">
+                          and a.end_date &lt;= #{endDate}
+                        </if>
+                    </where>
+                        order by a.create_time desc
+                        limit #{beginNo} , #{pageSize}
+  </select>
+
+  <select id="selectTotalOfActivityByCondition" parameterType="map" resultType="Integer">
+    select count(*)
+    from tbl_activity a
+    join tbl_user u1
+    on     u1.id = a.owner
+    left join tbl_user u2
+    on     u2.id = a.create_By
+    left join tbl_user u3
+    on     u3.id = a.edit_By
+    <where>
+    <if test="name!=null and name!=''">
+       a.name like '%' #{name} '%'
+    </if>
+    <if test="owner!=null and owner!=''">
+      and u1.name like '%' #{owner} '%'
+    </if>
+    <if test="startDate!=null and startDate!=''">
+      and a.start_date &gt;= #{startDate}
+    </if>
+    <if test="endDate!=null and endDate!=''">
+      and a.end_date &lt;= #{endDate}
+    </if>
+    </where>
+  </select>
+  <delete id="deleteActivityByIds" parameterType="String">
+    delete from tbl_Activity
+            where id in(
+                <foreach collection="array" item="id" separator=",">
+                  #{id}
+                </foreach>
+              )
+  </delete>
 </mapper>

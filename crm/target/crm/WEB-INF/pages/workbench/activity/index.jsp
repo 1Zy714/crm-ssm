@@ -9,16 +9,17 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 <head>
 	<base href="<%=basePath%>">
 <meta charset="UTF-8">
+	<link href="jquery/bootstrap_3.3.0/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
+	<link rel="stylesheet" type="text/css" href="jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css">
+	<link rel="stylesheet" type="text/css" href="jquery/bs_pagination-master/css/jquery.bs_pagination.min.css">
 
-<link href="jquery/bootstrap_3.3.0/css/bootstrap.min.css" type="text/css" rel="stylesheet" />
-<link href="jquery/bootstrap-datetimepicker-master/css/bootstrap-datetimepicker.min.css" type="text/css" rel="stylesheet" />
-
-<script type="text/javascript" src="jquery/jquery-1.11.1-min.js"></script>
-<script type="text/javascript" src="jquery/bootstrap_3.3.0/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js"></script>
-<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js"></script>
-
-<script type="text/javascript">
+	<script type="text/javascript" src="jquery/jquery-1.11.1-min.js"></script>
+	<script type="text/javascript" src="jquery/bootstrap_3.3.0/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/js/bootstrap-datetimepicker.js"></script>
+	<script type="text/javascript" src="jquery/bootstrap-datetimepicker-master/locale/bootstrap-datetimepicker.zh-CN.js"></script>
+	<script type="text/javascript" src="jquery/bs_pagination-master/js/jquery.bs_pagination.min.js"></script>
+	<script type="text/javascript" src="jquery/bs_pagination-master/localization/en.js"></script>
+	<script type="text/javascript">
 
 	$(function(){
 
@@ -34,6 +35,9 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 			clearBtn:true,
 			pickerPosition: "bottom-left"
 		});
+
+		//页面加载完毕刷新页面
+		pageList(1,5);
 		<%--给模态窗口用户下拉列表赋值--%>
 		var html="";
 		<c:forEach items="${users}" var="u">
@@ -96,6 +100,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 					if(data.code=="1"){
 						$("#createActivityModal").modal("hide");
 						//刷新市场活动列表，显示第一页数据
+						pageList(1,$("#pageSize"))
 					}else{
 						$("#createActivityModal").modal("show");
 						alert(${data.msg});
@@ -103,8 +108,154 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 				}
 
 			})
+		})//创建按钮单击事件
+		$("#selectBtn").click(function(){
+			/*
+			* 点击查询按钮的时候将搜索框的信息保存到隐藏域
+			* */
+			$("#hidden-name").val($.trim($("#select-name").val()));
+			$("#hidden-owner").val($.trim($("#select-owner").val()));
+			$("#hidden-startDate").val($.trim($("#select-startDate").val()));
+			$("#hidden-endDate").val($.trim($("#select-endDate").val()));
+			pageList(1,$("#pageSize").val());
+			;
 		})
-	});
+		//回车事件
+		$(window).keydown(function(event){
+			/*
+			* 回车的时候将搜索框的信息保存到隐藏域
+			* */
+			$("#hidden-name").val($.trim($("#select-name").val()));
+			$("#hidden-owner").val($.trim($("#select-owner").val()));
+			$("#hidden-startDate").val($.trim($("#select-startDate").val()));
+			$("#hidden-endDate").val($.trim($("#select-endDate").val()));
+			if(event.key=='Enter')
+				pageList(1,$("#pageSize").val());
+
+		})
+		//全选复选框单击事件
+		$("#selectAll").change(function(){
+			//如果是>只能获取直接子标签 而空格可以获取	全部子标签
+			$("#activityBody input[type='checkbox']").prop("checked",this.checked);
+		})
+		//为动态生成复选框增加与全选框的判断
+		//动态生成的元素要以on方法的形式来出发时间
+		/*
+        * 1、绑定元素有效的外层元素
+        * 2、绑定的元素调用on绑定事件的方法
+        * 	$(有效的外层元素).on(绑定的事件,需要绑定的元素,方法)
+        * */
+		$("#activityBody").on("click",$("input[name=select]"),function () {
+			//如果状态为checked的复选框数量等同于复选框数量，则对全选框赋值true，否则为false
+			$("#selectAll").prop("checked",$("input[name=select]").length==$("input[name=select]:checked").length);
+		})
+		//删除按钮增加单击事件
+		$("#deleteBtn").click(function(){
+			//手机参数
+			var checkedIds = $("#activityBody input[type=checkbox]:checked");
+			if(checkedIds.size() == 0){
+				alert("请选择要删除的市场活动");
+				return;
+			}
+			if(!window.confirm("请确定是否删除"))
+				return;
+			//获取选择到的数组id
+			var ids="";
+			$.each(checkedIds,function(){
+				//获取dom对象的属性
+				ids += "id="+this.value+"&";
+				<%--alert(this.value)--%>
+			});
+			//截取字符串
+			ids = ids.substr(0,ids.length-1);
+			//发送请求到后台
+			$.ajax({
+				url:"workbench/activity/delete.do",
+				data:ids,
+				type:"post",
+				dataType:"json",
+				success:function(data){
+					if(data.code=="1"){
+						pageList(1,$("#pageSize").val());
+					}else {
+						alert(data.msg);
+					}
+				}
+			})
+		})
+	});//入口函数
+
+	//分页方法
+	function pageList(pageNo,pageSize){
+		//将复选框的√干掉
+		$("#selectAll").prop("checked",false);
+		<%--$("#activityBody input[type='checkbox']").prop("checked",false);--%>
+		//保存每页显示数量
+		$("#pageSize").val(pageSize);
+		//查询前将隐藏域值赋给搜索域
+		$("#select-name").val($.trim($("#hidden-name").val()));
+		$("#select-owner").val($.trim($("#hidden-owner").val()));
+		$("#select-startDate").val($.trim($("#hidden-startDate").val()));
+		$("#select-endDate").val($.trim($("#hidden-endDate").val()));
+
+		var name = $.trim($("#select-name").val());
+		var owner = $.trim($("#select-owner").val());
+		var startDate = $.trim($("#select-startDate").val());
+		var endDate = $.trim($("#select-endDate").val());
+
+
+		$.ajax({
+			url:"workbench/activity/pageList.do",
+			data:{
+				name:name,
+				owner:owner,
+				startDate:startDate,
+				endDate:endDate,
+				pageNo:pageNo,
+				pageSize:pageSize
+			},
+			type:"post",
+			dataType:"json",
+			success:function(data){
+				var html ="";
+				$.each(data.activityList,function(i,n){
+					html +='<tr class="active">';
+					html +='	<td><input type="checkbox" name="select" value="'+n.id+'"/></td>';
+					html +='	<td><a style="text-decoration: none; cursor: pointer;" onclick="window.location.href=\'detail.html\';">'+n.name+'</a></td>';
+					html +='	<td>'+n.owner+'</td>';
+					html +='	<td>'+n.startDate+'</td>';
+					html +='	<td>'+n.endDate+'</td>';
+					html +='</tr>';
+
+
+				})
+				$("#activityBody").html(html);
+				//计算总页数
+				var totalPages = 1;
+				if(data.totalRows%pageSize==0){
+					totalPages = data.totalRows/pageSize;
+				}else{
+					totalPages = parseInt(data.totalRows/pageSize)+1;
+				}
+				//分页插件函数
+				$("#page").bs_pagination({
+					currentPage:pageNo,						//当前页号
+					rowsPerPage:pageSize,					//每页显示条数
+					totalRows:data.totalRows,				//总条数
+					totalPages:totalPages,					//总页数
+					visiblePageLinks:5,						//最多显示卡片数
+					showGoToPage:true,						//控制是否显示跳转页面,默认为true
+					showRowsPerPage:true,					//是否显示每页显示条数，默认是true
+					showRowsInfo:true,						//是否显示记录信息，默认是true
+					onChangePage:function(event,pageObj){	//用户切换页面时发生的事件，每次切换页面都返回切换页号之后的pageNo和pageSize
+						pageList(pageObj.currentPage,pageObj.rowsPerPage);
+					}
+				})
+
+			}
+
+		});
+	}
 	
 </script>
 </head>
@@ -145,7 +296,7 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 							</div>
 							<label for="create-endDate" class="col-sm-2 control-label">结束日期</label>
 							<div class="col-sm-10" style="width: 300px;">
-								<input type="text" class="form-control time" id="create-endDate">
+								<input type="text" class="form-control time" id="create-endDate" readonly>
 								<span id="date-msg" class="msg" style="color: #b92c28"></span>
 							</div>
 						</div>
@@ -286,21 +437,26 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 	</div>
 	<div style="position: relative; top: -20px; left: 0px; width: 100%; height: 100%;">
 		<div style="width: 100%; position: absolute;top: 5px; left: 10px;">
-		
+			<input type="hidden" id="hidden-name"/>
+			<input type="hidden" id="hidden-owner"/>
+			<input type="hidden" id="hidden-startDate"/>
+			<input type="hidden" id="hidden-endDate"/>
+			<input type="hidden" id="pageSize"/>
+
 			<div class="btn-toolbar" role="toolbar" style="height: 80px;">
 				<form class="form-inline" role="form" style="position: relative;top: 8%; left: 5px;">
 				  
 				  <div class="form-group">
 				    <div class="input-group">
 				      <div class="input-group-addon">名称</div>
-				      <input class="form-control" type="text">
+				      <input class="form-control" type="text" id="select-name">
 				    </div>
 				  </div>
 				  
 				  <div class="form-group">
 				    <div class="input-group">
 				      <div class="input-group-addon">所有者</div>
-				      <input class="form-control" type="text">
+				      <input class="form-control" type="text" id="select-owner">
 				    </div>
 				  </div>
 
@@ -308,17 +464,17 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 				  <div class="form-group">
 				    <div class="input-group">
 				      <div class="input-group-addon">开始日期</div>
-					  <input class="form-control" type="text" id="startTime" />
+					  <input class="form-control" type="text" id="select-startDate" />
 				    </div>
 				  </div>
 				  <div class="form-group">
 				    <div class="input-group">
 				      <div class="input-group-addon">结束日期</div>
-					  <input class="form-control" type="text" id="endTime">
+					  <input class="form-control" type="text" id="select-endDate">
 				    </div>
 				  </div>
 				  
-				  <button type="submit" class="btn btn-default">查询</button>
+				  <button type="button" class="btn btn-default" id="selectBtn">查询</button>
 				  
 				</form>
 			</div>
@@ -326,19 +482,19 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 				<div class="btn-group" style="position: relative; top: 18%;">
 				  <button type="button" class="btn btn-primary" id="createBtn"><span class="glyphicon glyphicon-plus"></span> 创建</button>
 				  <button type="button" class="btn btn-default" data-toggle="modal" data-target="#editActivityModal"><span class="glyphicon glyphicon-pencil"></span> 修改</button>
-				  <button type="button" class="btn btn-danger"><span class="glyphicon glyphicon-minus"></span> 删除</button>
+				  <button type="button" class="btn btn-danger" id="deleteBtn"><span class="glyphicon glyphicon-minus"></span> 删除</button>
 				</div>
 				<div class="btn-group" style="position: relative; top: 18%;">
                     <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importActivityModal" ><span class="glyphicon glyphicon-import"></span> 上传列表数据（导入）</button>
                     <button id="exportActivityAllBtn" type="button" class="btn btn-default"><span class="glyphicon glyphicon-export"></span> 下载列表数据（批量导出）</button>
-                    <button id="exportActivityXzBtn" type="button" class="btn btn-default"><span class="glyphicon glyphicon-export"></span> 下载列表数据（选择导出）</button>
+                    <button id="exportActivityXzBtn" type="button" class="btn btn-default" ><span class="glyphicon glyphicon-export"></span> 下载列表数据（选择导出）</button>
                 </div>
 			</div>
 			<div style="position: relative;top: 10px;">
 				<table class="table table-hover">
 					<thead>
 						<tr style="color: #B3B3B3;">
-							<td><input type="checkbox" /></td>
+							<td><input type="checkbox"id="selectAll"/></td>
 							<td>名称</td>
                             <td>所有者</td>
 							<td>开始日期</td>
@@ -346,27 +502,16 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 						</tr>
 					</thead>
 					<tbody id="activityBody">
-						<tr class="active">
-							<td><input type="checkbox" /></td>
-							<td><a style="text-decoration: none; cursor: pointer;" onclick="window.location.href='detail.html';">发传单</a></td>
-                            <td>zhangsan</td>
-							<td>2020-10-10</td>
-							<td>2020-10-20</td>
-						</tr>
-                        <tr class="active">
-                            <td><input type="checkbox" /></td>
-                            <td><a style="text-decoration: none; cursor: pointer;" onclick="window.location.href='detail.html';">发传单</a></td>
-                            <td>zhangsan</td>
-                            <td>2020-10-10</td>
-                            <td>2020-10-20</td>
-                        </tr>
+
+
 					</tbody>
 				</table>
+				<div id="page"></div>
 			</div>
-			
+		<%--
 			<div style="height: 50px; position: relative;top: 30px;">
 				<div>
-					<button type="button" class="btn btn-default" style="cursor: default;">共<b>50</b>条记录</button>
+					<button type="button" class="btn btn-default" style="cursor: default;">共<b id="totalRows"></b>条记录</button>
 				</div>
 				<div class="btn-group" style="position: relative;top: -34px; left: 110px;">
 					<button type="button" class="btn btn-default" style="cursor: default;">显示</button>
@@ -402,5 +547,6 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 		</div>
 		
 	</div>
+	--%>
 </body>
 </html>
