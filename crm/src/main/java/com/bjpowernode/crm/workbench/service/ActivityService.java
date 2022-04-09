@@ -10,4 +10,6 @@ public interface ActivityService {
     List<Activity> queryActivityList(Map<String,Object> map);
     int selectTotalOfActivityByCondition(Map<String,Object> map);
     int deleteActivityByIds(String[] ids);
+    Activity selectActivityById(String id);
+    int updateActivity(Activity activity);
 }

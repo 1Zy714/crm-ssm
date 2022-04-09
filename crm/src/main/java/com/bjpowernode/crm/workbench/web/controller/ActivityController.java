@@ -8,6 +8,7 @@ import com.bjpowernode.crm.settings.domain.User;
 import com.bjpowernode.crm.settings.service.UserService;
 import com.bjpowernode.crm.workbench.domain.Activity;
 import com.bjpowernode.crm.workbench.service.ActivityService;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -99,5 +100,36 @@ public class ActivityController {
             ro.setCode("删除失败");
         }
         return ro;
+    }
+    @RequestMapping("edit.do")
+    @ResponseBody
+    public Object selectActivityById(String id){
+        Activity activity = activityService.selectActivityById(id);
+        return activity;
+    }
+    @RequestMapping("update.do")
+    public @ResponseBody Object updateActivity(HttpSession session,Activity activity){
+        String editTime = DateUtils.formatDateTime(new Date());
+        User user = (User) session.getAttribute(Constants.SESSION_USER);
+        String editBy = user.getId();
+        activity.setEditTime(editTime);
+        activity.setEditBy(editBy);
+        //System.out.println(activity);
+        ReturnObject ro = new ReturnObject();
+        try {
+            int count = activityService.updateActivity(activity);
+            System.out.println(count);
+            if(count == 1)
+                ro.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+            else {
+                ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+                ro.setMsg("更新数据库失败");
+            }
+        }catch (Exception e){
+            ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+            ro.setMsg(e.getMessage());
+        }
+        return ro;
+
     }
 }
