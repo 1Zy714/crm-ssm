@@ -75,4 +75,12 @@ public interface ActivityMapper {
      * 将前端修改的数据反应到数据库
      * */
     int updateActivity(Activity activity);
+    /**
+     * 获取所有活动列表
+     * */
+    List<Activity> getActivities();
+    /**
+     * 通过上传的文件导入数据到数据库
+     * */
+    int insertActivityByList(List<Activity> activityList);
 }

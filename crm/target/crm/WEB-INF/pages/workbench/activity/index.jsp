@@ -243,6 +243,60 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 				})
 			}
 		})
+		//导出市场活动列表文件
+		$("#exportAllBtn").click(function(){
+			//发送同步请求
+			window.location.href="workbench/activity/export.do";
+		})
+		//上传文件单击事件
+		$("#uploadBtn").click(function(){
+			$("#importActivityModal").modal("show");
+		})
+		//导入按钮单击事件
+		$("#importActivityBtn").click(function(){
+			$("#importMsg").text("");
+			/*验证文件名*/
+			var name = $("#activityFile").val();
+			var suffix = name.substr(name.lastIndexOf(".")+1).toLowerCase();//获取最后一个.后面的后缀,转成小写
+			//判断后缀名是否符合要求
+			if(suffix != "xls"){
+				$("#importMsg").text("请选择xls文件");
+				return;
+			}
+			//获取文件DOM对象的文件，浏览器只支持选一个
+			var activityFile = $("#activityFile")[0].files[0];
+			/*验证文件大小:判断文件大小是否为5M
+				*/
+			if(activityFile.size>5*1024*1024){
+				$("#importMsg").text("文件过大，请选择小于5MB的文件");
+				return;
+			}
+			/*
+			* 发送异步请求
+			* FromData是ajax提供的接口
+			* FromData可以模拟键值对，向后台提交参数，不但能提交文本数据，还能提交二进制数据
+			* */
+			var fromData = new FormData();
+			fromData.append("activityFile",activityFile);
+			$.ajax({
+				url:"workbench/activity/importActivity.do",
+				data:fromData,
+				processData:false,//设置ajax提交数据前，是否把参数转为字符串，默认是true
+				contentType:false,//设置ajax提交数据前，是否把所有参数统一按urlencoded编码，默认为true
+				type:"post",
+				dataType:"json",
+				success:function(data){
+					if(data.code=='1'){
+						$("#importActivityModal").modal('hide');
+						alert("成功导入"+data.retData+"条记录！");
+						pageList(1,$("#pageSize").val());
+					}else {
+						alert(data.msg);
+					}
+				}
+
+			})
+		})
 	});//入口函数
 
 	//分页方法
@@ -478,7 +532,10 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
                             <li>默认情况下，字符编码是UTF-8 (统一码)，请确保您导入的文件使用的是正确的字符编码方式。</li>
                             <li>建议您在导入真实数据之前用测试文件测试文件导入功能。</li>
                         </ul>
+						<div id="importMsg" style="color: #b92c28">
+						</div>
                     </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -547,8 +604,8 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"
 				  <button type="button" class="btn btn-danger" id="deleteBtn"><span class="glyphicon glyphicon-minus"></span> 删除</button>
 				</div>
 				<div class="btn-group" style="position: relative; top: 18%;">
-                    <button type="button" class="btn btn-default" data-toggle="modal" data-target="#importActivityModal" ><span class="glyphicon glyphicon-import"></span> 上传列表数据（导入）</button>
-                    <button id="exportActivityAllBtn" type="button" class="btn btn-default"><span class="glyphicon glyphicon-export"></span> 下载列表数据（批量导出）</button>
+                    <button type="button" class="btn btn-default" id="uploadBtn" ><span class="glyphicon glyphicon-import"></span> 上传列表数据（导入）</button>
+                    <button  type="button" class="btn btn-default" id="exportAllBtn"><span class="glyphicon glyphicon-export"></span> 下载列表数据（批量导出）</button>
                     <button id="exportActivityXzBtn" type="button" class="btn btn-default" ><span class="glyphicon glyphicon-export"></span> 下载列表数据（选择导出）</button>
                 </div>
 			</div>
