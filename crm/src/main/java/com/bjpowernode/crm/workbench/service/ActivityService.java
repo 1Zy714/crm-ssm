@@ -1,6 +1,7 @@
 package com.bjpowernode.crm.workbench.service;
 
 import com.bjpowernode.crm.workbench.domain.Activity;
+import com.bjpowernode.crm.workbench.domain.ActivityRemark;
 
 import java.util.List;
 import java.util.Map;
@@ -14,4 +15,6 @@ public interface ActivityService {
     int updateActivity(Activity activity);
     List<Activity> selectActivities();
     int saveActivityByList(List<Activity> activityList);
+    Activity selectActivityDetailById(String id);
+
 }

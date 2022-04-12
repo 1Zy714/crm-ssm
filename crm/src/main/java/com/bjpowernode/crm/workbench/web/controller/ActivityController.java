@@ -8,6 +8,8 @@ import com.bjpowernode.crm.commons.utils.UUIDUtils;
 import com.bjpowernode.crm.settings.domain.User;
 import com.bjpowernode.crm.settings.service.UserService;
 import com.bjpowernode.crm.workbench.domain.Activity;
+import com.bjpowernode.crm.workbench.domain.ActivityRemark;
+import com.bjpowernode.crm.workbench.service.ActivityRemarkService;
 import com.bjpowernode.crm.workbench.service.ActivityService;
 
 import org.apache.poi.hssf.usermodel.*;
@@ -34,6 +36,8 @@ public class ActivityController {
     private UserService userService;
     @Resource
     private ActivityService activityService;
+    @Resource
+    private ActivityRemarkService activityRemarkService;
 
     @RequestMapping("index.do")
     public ModelAndView index() {
@@ -379,7 +383,19 @@ public class ActivityController {
         }
         return ro;
 
+    }
+    /**
+     * 获取市场活动详细信息和相关备注
+     * */
+    @RequestMapping("detail.do")
+    public ModelAndView queryActivityDetailById(String id){
+        Activity activity = activityService.selectActivityDetailById(id);
+        List<ActivityRemark> remarks = activityRemarkService.queryActivityForDetail(id);
+        ModelAndView mv = new ModelAndView();
+        mv.addObject("activity",activity);
+        mv.addObject("remarks",remarks);
+        mv.setViewName("workbench/activity/detail");
+        return mv;
 
     }
-
 }

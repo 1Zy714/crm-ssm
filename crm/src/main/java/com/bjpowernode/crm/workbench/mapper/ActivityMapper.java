@@ -83,4 +83,8 @@ public interface ActivityMapper {
      * 通过上传的文件导入数据到数据库
      * */
     int insertActivityByList(List<Activity> activityList);
+    /**
+     * 查询市场活动纤细信息
+     * */
+    Activity selectActivityDetailById(String id);
 }

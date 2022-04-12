@@ -54,4 +54,9 @@ public class ActivityServiceImpl implements ActivityService {
         return activityMapper.insertActivityByList(activityList);
     }
 
+    @Override
+    public Activity selectActivityDetailById(String id) {
+        return  activityMapper.selectActivityDetailById(id);
+    }
+
 }
