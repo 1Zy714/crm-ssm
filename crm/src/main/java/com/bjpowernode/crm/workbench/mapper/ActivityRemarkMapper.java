@@ -60,4 +60,12 @@ public interface ActivityRemarkMapper {
      * 向数据库插入备注信息
      * */
     int insertActivityRemark(ActivityRemark remark);
+    /**
+     * 删除备注记录
+     * */
+    int deleteRemarkById(String id);
+    /**
+     * 修改备注信息
+     * */
+    int updateActivityRemark(ActivityRemark remark);
 }

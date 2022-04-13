@@ -45,4 +45,47 @@ public class ActivityRemarkController {
         }
         return  ro;
     }
+    @RequestMapping("deleteActivityRemarkById.do")
+    @ResponseBody
+    public Object deleteActivityRemarkById(String id){
+        ReturnObject ro = new ReturnObject();
+        try {
+            int flag = activityRemarkService.deleteActivityRemarkById(id);
+            if(flag > 0){
+                ro.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+            }else {
+                ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+                ro.setMsg("删除失败");
+            }
+        }catch (Exception e){
+            ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+            ro.setMsg("删除失败");
+            e.printStackTrace();
+        }
+        return ro;
+    }
+    @RequestMapping("updateActivityRemark.do")
+    @ResponseBody
+    public Object updateActivityRemark(ActivityRemark remark,HttpSession session){
+        ReturnObject ro = new ReturnObject();
+        remark.setEditFlag("1");
+        remark.setEditBy(((User)session.getAttribute(Constants.SESSION_USER)).getId());
+        remark.setEditTime(DateUtils.formatDateTime(new Date()));
+        try {
+            int flag = activityRemarkService.updateActivityRemark(remark);
+            if(flag > 0){
+                ro.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+                ro.setRetData(remark);
+            }else {
+                ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+                ro.setMsg("修改失败");
+            }
+        }catch (Exception e){
+            ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+            ro.setMsg("修改失败");
+            e.printStackTrace();
+
+        }
+        return ro;
+    }
 }

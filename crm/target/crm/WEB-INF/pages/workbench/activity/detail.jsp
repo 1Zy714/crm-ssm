@@ -42,7 +42,7 @@
 			$("#remarkDiv").css("height","90px");
 			cancelAndSaveBtnDefault = true;
 		});
-		
+		/*这种方式，无法为动态的元素添加事件
 		$(".remarkDiv").mouseover(function(){
 			$(this).children("div").children("div").show();
 		});
@@ -58,6 +58,19 @@
 		$(".myHref").mouseout(function(){
 			$(this).children("span").css("color","#E6E6E6");
 		});
+		*/
+		 $("#remarkList").on("mouseover",".remarkDiv",function(){
+			 $(this).children("div").children("div").show();
+		 })
+		$("#remarkList").on("mouseout",".remarkDiv",function(){
+			$(this).children("div").children("div").hide();
+		})
+		$("#remarkList").on("mouseover",".myHref",function(){
+			$(this).children("span").css("color","red");
+		})
+		$("#remarkList").on("mouseout",".myHref",function(){
+			$(this).children("span").css("color","#E6E6E6");
+		})
 		$("#saveBtn").click(function(){
 			$("#remarkMsg").text("");
 			var noteContent = $.trim($("#remark").val());
@@ -77,19 +90,18 @@
 				success:function(data){
 					var html="";
 					if(data.code == '1'){
-						html += '<div  class="remarkDiv" style="height: 60px;">';
-						html += '<img title="${sessionScpoe.sessionUser.name}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">';
+						html += '<div id="'+data.retData.id+'" class="remarkDiv" style="height: 60px;">';
+						html += '<img title="${sessionScope.sessionUser.name}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">';
 						html += '<div style="position: relative; top: -40px; left: 40px;" >';
 						html += '<h5 id="e'+data.retData.id+'">'+data.retData.noteContent+'</h5>';
 						html += '<font color="gray">市场活动</font> <font color="gray">-</font> <b>${activity.name}</b> <small style="color: gray;"id="s'+data.retData.id+'"> '+data.retData.createTime+'由${sessionScope.sessionUser.name}创建</small>';
 						html += '<div style="position: relative; left: 500px; top: -30px; height: 30px; width: 100px; display: none;">';
-						html += '<a class="myHref" href="javascript:void(0);"onclick="editRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #FF0000;"></span></a>';
+						html += '<a class="myHref" name="editA" href="javascript:void(0);"onclick="editRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #FF0000;"></span></a>';
 						html += '&nbsp;&nbsp;&nbsp;&nbsp;';
-						html += '<a class="myHref" href="javascript:void(0);" onclick="deleteRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #FF0000;"></span></a>';
+						html += '<a class="myHref" name="deleteA" href="javascript:void(0);" onclick="deleteRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #FF0000;"></span></a>';
 						html += '</div>';
 						html += '</div>';
 						html += '</div>';
-
 						$("#remarkDiv").before(html);
 						$("#remark").val("");
 						$("#remark").blur();
@@ -106,8 +118,70 @@
 			if(event.key == 'Enter')
 				$("#saveBtn").click();
 		})
+		//给修改备注绑定事件
+		$("#remarkList").on("click","a[name='editA']",function(){
+			var id = $(this).attr("remarkId");
+			$("#remarkId").val(id);
+            $("#noteContent").val($("#e"+id).html());
+			$("#editRemarkModal").modal("show");
+		})
+		//给更新按钮绑定事件
+		$("#updateRemarkBtn").click(function(){
+			editRemark();
+		})
+		//回车事件
+		$("#noteContent").keydown(function(event){
+			if(event.key == 'Enter')
+				editRemark();
+		})
 	});
-	
+		function editRemark(){
+			$("#contentMsg").text("");
+			var noteContent = $.trim($("#noteContent").val());
+			var id = $("#remarkId").val();
+			if(noteContent == ""){
+                $("#contentMsg").text("noteContent不可为空！");
+                return;
+			}
+            if(noteContent = $("#e"+id).html()){
+                $("#contentMsg").text("请输入要修改的内容");
+                return;
+            }
+			$.ajax({
+				url:"workbench/activity/updateActivityRemark.do",
+				data:{
+					noteContent:noteContent,
+					id:id
+				},
+				type:"post",
+				dataType:"json",
+				success:function(data){
+					if(data.code=="1"){
+						$("#e"+id).html(noteContent);
+						$("#s"+id).html(data.retData.editTime+"由${sessionScope.sessionUser.name}修改");
+						$("#editRemarkModal").modal("hide");
+					}
+					else
+						alert(data.msg);
+				}
+			})
+		}
+		function deleteRemark(id){
+			$.ajax({
+				url:"workbench/activity/deleteActivityRemarkById.do",
+				data:{
+					id:id
+				},
+				type:"post",
+				dataType:"json",
+				success:function(data){
+					if(data.code=="1")
+						$("#"+id).remove();
+					else
+						alert(data.msg);
+				}
+			})
+		}
 </script>
 
 </head>
@@ -132,6 +206,9 @@
                             <div class="col-sm-10" style="width: 81%;">
                                 <textarea class="form-control" rows="3" id="noteContent"></textarea>
                             </div>
+							<div id="contentMsg" style="color: #b92c28 ; text-align: center">
+
+							</div>
                         </div>
                     </form>
                 </div>
@@ -153,7 +230,7 @@
 	<!-- 大标题 -->
 	<div style="position: relative; left: 40px; top: -30px;">
 		<div class="page-header">
-			<h3>市场活动-发传单 <small>2020-10-10 ~ 2020-10-20</small></h3>
+			<h3>市场活动-${activity.name} <small>${activity.startDate} ~ ${activity.endDate}</small></h3>
 		</div>
 		
 	</div>
@@ -207,23 +284,23 @@
 	</div>
 	
 	<!-- 备注 -->
-	<div style="position: relative; top: 30px; left: 40px;">
+	<div style="position: relative; top: 30px; left: 40px;" id="remarkList">
 		<div class="page-header">
 			<h4>备注</h4>
 		</div>
 
 		<!-- 遍历remarks 显示所有备注-->
 		<c:forEach items="${remarks}" var="r">
-		<div class="remarkDiv" style="height: 60px;">
-			<img title="${u.createBy}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">
+		<div class="remarkDiv" style="height: 60px;" id="${r.id}">
+			<img title="${r.createBy}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">
 			<div style="position: relative; top: -40px; left: 40px;" >
-				<h5>${r.noteContent}</h5>
+				<h5 id="e${r.id}">${r.noteContent}</h5>
 				<font color="gray">市场活动</font> <font color="gray">-</font> <b>${activity.name}</b>
-				<small style="color: gray;">${r.editFlag==1?r.editTime:r.createTime}由${r.editFlag==1?r.editBy:r.createBy}${r.editFlag==1?"修改":"创建"}</small>
+				<small style="color: gray;" id="s${r.id}">${r.editFlag==1?r.editTime:r.createTime}由${r.editFlag==1?r.editBy:r.createBy}${r.editFlag==1?"修改":"创建"}</small>
 				<div style="position: relative; left: 500px; top: -30px; height: 30px; width: 100px; display: none;">
-					<a class="myHref" remarkid="${r.id}" href="javascript:void(0);"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #E6E6E6;"></span></a>
+					<a class="myHref" name="editA" remarkId="${r.id}" href="javascript:void(0);"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #E6E6E6;"></span></a>
 					&nbsp;&nbsp;&nbsp;&nbsp;
-					<a class="myHref" remarkid="${r.id}" href="javascript:void(0);"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #E6E6E6;"></span></a>
+					<a class="myHref" name="deleteA" remarkId="${r.id}" href="javascript:void(0);" onclick="deleteRemark('${r.id}')"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #E6E6E6;"></span></a>
 				</div>
 			</div>
 		</div>

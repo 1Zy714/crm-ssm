@@ -20,4 +20,14 @@ public class ActivityRemarkServiceImpl implements ActivityRemarkService {
     public int saveActivityRemark(ActivityRemark remark) {
         return activityRemarkMapper.insertActivityRemark(remark);
     }
+
+    @Override
+    public int deleteActivityRemarkById(String id) {
+        return activityRemarkMapper.deleteRemarkById(id);
+    }
+
+    @Override
+    public int updateActivityRemark(ActivityRemark remark) {
+        return activityRemarkMapper.updateActivityRemark(remark);
+    }
 }

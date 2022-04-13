@@ -7,4 +7,6 @@ import java.util.List;
 public interface ActivityRemarkService {
 List<ActivityRemark> queryActivityForDetail(String activityId);
 int saveActivityRemark(ActivityRemark remark);
+int deleteActivityRemarkById(String id);
+int updateActivityRemark(ActivityRemark remark);
 }

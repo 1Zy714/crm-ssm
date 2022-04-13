@@ -1529,3 +1529,287 @@ $(window).keydown(function (event){
    文件类型判断，是通过获得上传的文件名最后一个.后面的扩展名判断的
 
    而文件大小判断则是，通过获取文件的dom对象的files属性的第一个对象，规定上可以有多个对象，但是浏览器只支持单个文件上传
+
+## 5.7 查看市场活动明细
+
+**需求分析：**
+
+- 用户点击市场活动名的超链接，跳转到市场活动详细页
+
+- 前端通过标签保存数据：
+
+  优先使用value属性保存，如果value不方便时，可以设置自定义属性，但是只能通过dom对象获取
+
+**分析与设计**
+
+- 用户点击市场活动名，向后台发起同步请求，跳转到控制器
+- 控制器向业务层市场活动和备注，通过id获取市场活动信息和对应的备注
+- 将获得的备注list和市场活动对象处理传回前端
+
+**编码实现：**
+
+- controller层分别向activityService以及activityRemarkService发起请求获取相应的数据，将返回的市场活动信息和备注列表传到前端
+
+  ```java
+  Activity activity = activityService.selectActivityDetailById(id);
+  List<ActivityRemark> remarks = activityRemarkService.queryActivityForDetail(id);
+  ModelAndView mv = new ModelAndView();
+  mv.addObject("activity",activity);
+  mv.addObject("remarks",remarks);
+  mv.setViewName("workbench/activity/detail");
+  return mv;
+  ```
+
+- 前端根据传递的数据处理页面，重点在于备注的循环遍历
+
+  ```html
+  <!-- 遍历remarks 显示所有备注-->
+  		<c:forEach items="${remarks}" var="r">
+  		<div class="remarkDiv" style="height: 60px;">
+  			<img title="${u.createBy}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">
+  			<div style="position: relative; top: -40px; left: 40px;" >
+  				<h5>${r.noteContent}</h5>
+  				<font color="gray">市场活动</font> <font color="gray">-</font> <b>${activity.name}</b>
+  				<small style="color: gray;">${r.editFlag==1?r.editTime:r.createTime}由${r.editFlag==1?r.editBy:r.createBy}${r.editFlag==1?"修改":"创建"}</small>
+  				<div style="position: relative; left: 500px; top: -30px; height: 30px; width: 100px; display: none;">
+  					<a class="myHref" remarkid="${r.id}" href="javascript:void(0);"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #E6E6E6;"></span></a>
+  					&nbsp;&nbsp;&nbsp;&nbsp;
+  					<a class="myHref" remarkid="${r.id}" href="javascript:void(0);"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #E6E6E6;"></span></a>
+  				</div>
+  			</div>
+  		</div>
+  		</c:forEach>
+  ```
+
+## 5.8 添加市场活动备注
+
+**需求分析**
+
+- 用户输入市场活动备注，点击保存，向后台发起添加备注请求
+- 添加完成后，清空输入框，刷新备注列表
+
+**分析与设计**
+
+- 用户输入市场活动备注文本，点击保存后发起异步请求到备注相关controller，传递noteContent和activityId，控制器获取其他参数，将参数封装到备注实体对象
+
+- 控制器向业务层发送请求，通过mapper将实体对象存储到后台
+
+- 根据处理结果，返回响应信息，前端根据响应结果处理页面
+
+- 响应信息：
+
+  code、错误信息、添加的remark数据
+
+**编码实现：**
+
+- 后台控制器实现
+
+  ```java
+    @RequestMapping("saveActivityRemark.do")
+      @ResponseBody
+      public Object saveActivityRemark(ActivityRemark remark, HttpSession session){
+          ReturnObject ro = new ReturnObject();
+          //封装参数
+          remark.setId(UUIDUtils.getUUID());
+          remark.setCreateTime(DateUtils.formatDateTime(new Date()));
+          remark.setCreateBy(((User)session.getAttribute(Constants.SESSION_USER)).getId());
+          remark.setEditFlag(Constants.REMARK_EDIT_FLAG_NO_EDITED);
+          try {
+              int flag = activityRemarkService.saveActivityRemark(remark);
+              if(flag > 0){
+                  ro.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+                  ro.setRetData(remark);
+              }else{
+                  ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+                  ro.setMsg("保存失败了");
+              }
+          }catch (Exception e){
+              ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+              System.out.println(e.getMessage());
+              ro.setMsg("保存失败了");
+          }
+          return  ro;
+      }
+  ```
+
+- 前端页面处理
+
+  ```js
+  $("#saveBtn").click(function(){
+  			$("#remarkMsg").text("");
+  			var noteContent = $.trim($("#remark").val());
+  			var activityId = "${activity.id}";
+  			if(noteContent==""){
+  				$("#remarkMsg").text("请输入有效信息");
+  				return;
+  			}
+  			$.ajax({
+  				url:"workbench/activity/saveActivityRemark.do",
+  				data:{
+  					noteContent:noteContent,
+  					activityId:activityId
+  				},
+  				type:"post",
+  				dataType:"json",
+  				success:function(data){
+  					var html="";
+  					if(data.code == '1'){
+  						html += '<div  class="remarkDiv" style="height: 60px;">';
+  						html += '<img title="${sessionScpoe.sessionUser.name}" src="image/user-thumbnail.png" style="width: 30px; height:30px;">';
+  						html += '<div style="position: relative; top: -40px; left: 40px;" >';
+  						html += '<h5 id="e'+data.retData.id+'">'+data.retData.noteContent+'</h5>';
+  						html += '<font color="gray">市场活动</font> <font color="gray">-</font> <b>${activity.name}</b> <small style="color: gray;"id="s'+data.retData.id+'"> '+data.retData.createTime+'由${sessionScope.sessionUser.name}创建</small>';
+  						html += '<div style="position: relative; left: 500px; top: -30px; height: 30px; width: 100px; display: none;">';
+  						html += '<a class="myHref" href="javascript:void(0);"onclick="editRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-edit" style="font-size: 20px; color: #FF0000;"></span></a>';
+  						html += '&nbsp;&nbsp;&nbsp;&nbsp;';
+  						html += '<a class="myHref" href="javascript:void(0);" onclick="deleteRemark(\''+data.retData.id+'\')"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #FF0000;"></span></a>';
+  						html += '</div>';
+  						html += '</div>';
+  						html += '</div>';
+  
+  						$("#remarkDiv").before(html);
+  						$("#remark").val("");
+  						$("#remark").blur();
+  					}
+  					else {
+  						alert(data.msg);
+  					}
+  
+  				}
+  			})
+  		})
+  		//给输入框绑定回车键
+  		$("#remark").keydown(function(event){
+  			if(event.key == 'Enter')
+  				$("#saveBtn").click();
+  		})
+  ```
+
+  
+
+## 5.9 删除市场活动备注
+
+**需求分析**
+
+- 用户将鼠标悬浮到目的市场活动，点击删除图标×，确认删除后，向后台发起请求
+- 后台根据发送的数据，从数据库查数据并删除目的数据
+- 后台将结果返回页面
+
+**分析与设计**
+
+- 用户点击删除图标后，前端发起ajax请求，向后台发送请求和参数：remarkId
+- remarkController根据id，向业务层发起请求，业务层向持久层发起请求
+- 从数据库删除对应数据，返回结果
+- 控制器根据删除结果，向前端发送响应信息
+- 成功的话，将对应的div删除，否则提示删除失败信息
+
+**编码实现**
+
+- controller层
+
+  ```java
+  @RequestMapping("deleteActivityRemarkById.do")
+  @ResponseBody
+  public Object deleteActivityRemarkById(String id){
+      ReturnObject ro = new ReturnObject();
+      try {
+          int flag = activityRemarkService.deleteActivityRemarkById(id);
+          if(flag > 0){
+              ro.setCode(Constants.RETURN_OBJECT_CODE_SUCCESS);
+          }else {
+              ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+              ro.setMsg("删除失败");
+          }
+      }catch (Exception e){
+          ro.setCode(Constants.RETURN_OBJECT_CODE_FAILED);
+          ro.setMsg("删除失败");
+          e.printStackTrace();
+      }
+      return ro;
+  }
+  ```
+
+- 前端实现
+
+  - deleteRemark(id)异步请求
+
+    ```js
+    function deleteRemark(id){
+    			$.ajax({
+    				url:"workbench/activity/deleteActivityRemarkById.do",
+    				data:{
+    					id:id
+    				},
+    				type:"post",
+    				dataType:"json",
+    				success:function(data){
+    					if(data.code=="1")
+    						$("#"+id).remove();
+    					else
+    						alert(data.msg);
+    				}
+    			})
+    		}
+    ```
+
+  - 绑定事件
+
+    ```html
+    <a class="myHref" remarkid="${r.id}" href="javascript:void(0);" onclick="deleteRemark('${r.id}')"><span class="glyphicon glyphicon-remove" style="font-size: 20px; color: #E6E6E6;"></span></a>
+    				
+    ```
+
+    
+
+## 5.10 修改市场活动备注
+
+**需求分析**
+
+- 用户点击想要修改的备注的修改图标，跳出修改内容模块
+- 用户填入想要修改成的内容，点击更新，则更新内容
+- 页面中对应的内容也更新
+
+**分析与设计**
+
+- 用户点击修改图标时，需要将模态窗口显示出来，供用户填入修改后的文本
+- 用户点击更新按钮，则触发异步事件，想后台发送请求，将content和备注id传送到备注controller
+- controller生成修改时间，修改人，同时更改对象的修改标记为1，将封装好的对象传递，向业务层发起请求，业务层再向实现层发送请求，修改数据库的数据项，返回修改结果
+- controller根据业务层的响应，封装响应对象，反应到前端，如果成功响应成功标记和备注对象，前端判断成功后，从返回的备注对象中取数据修改对应的备注，隐藏模态窗口，失败则响应失败标记和失败信息，不关闭模态窗口
+
+**编码实现**
+
+- 前端设计
+
+  ```js
+  function editRemark(){
+     $("#contentMsg").text("");
+     var noteContent = $.trim($("#noteContent").val());
+     var id = $("#remarkId").val();
+     if(noteContent == ""){
+        $("#contentMsg").text("请输入要修改的内容");
+        return;
+     }
+     $.ajax({
+        url:"workbench/activity/updateActivityRemark.do",
+        data:{
+           noteContent:noteContent,
+           id:id
+        },
+        type:"post",
+        dataType:"json",
+        success:function(data){
+           if(data.code=="1"){
+              $("#e"+id).html(noteContent);
+              $("#s"+id).html(data.retData.editTime+"由${sessionScope.sessionUser.name}修改");
+              $("#editRemarkModal").modal("hide");
+           }
+           else
+              alert(data.msg);
+        }
+     })
+  }
+  ```
+
+  主要卡在了修改成功后，对于页面的处理，一直无法通过的原因是，对于textarea和small的赋值，通过了val，而不是html，导致一直无法显示修改结果
+
+  
